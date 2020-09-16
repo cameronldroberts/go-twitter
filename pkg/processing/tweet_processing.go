@@ -42,6 +42,8 @@ func TweetStream() {
 	httpClient := config.Client(oauth1.NoContext, token)
 	client := twitter.NewClient(httpClient)
 
+	var tweets []TweetData
+
 	demux := twitter.NewSwitchDemux()
 	demux.Tweet = func(tweet *twitter.Tweet) {
 		tweetdata := TweetData{
@@ -49,7 +51,16 @@ func TweetStream() {
 			LikeCount:    tweet.FavoriteCount,
 			RetweetCount: tweet.RetweetCount,
 		}
-		logr.Println(tweetdata)
+
+		tweets = append(tweets, tweetdata)
+		if len(tweets) == 10 {
+			// Call sentiment API in batches
+			logr.Print(tweets)
+			for _, tweets := range tweets {
+				logr.Print(tweets)
+			}
+			tweets = nil
+		}
 	}
 
 	filterParams := &twitter.StreamFilterParams{
