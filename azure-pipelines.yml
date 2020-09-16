@@ -10,5 +10,5 @@ pool:
   vmImage: 'ubuntu-latest'
 
 steps:
-- script: go test ./...
+- script: make test-cover
   displayName: 'Go test'
