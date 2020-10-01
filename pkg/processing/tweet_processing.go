@@ -1,11 +1,17 @@
 package processing
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
+
+	"github.com/Azure/azure-sdk-for-go/services/cognitiveservices/v2.1/textanalytics"
+	"github.com/Azure/go-autorest/autorest/to"
 
 	auth "github.com/cameronldroberts/go-twitter/pkg/auth"
 	"github.com/dghubble/go-twitter/twitter"
@@ -20,6 +26,7 @@ type TweetData struct {
 }
 
 func SearchTweet(client *twitter.Client) {
+
 	queryParam := os.Getenv("QUERY_PARAM")
 	search, resp, err := client.Search.Tweets(&twitter.SearchTweetParams{
 		Query: queryParam,
@@ -34,6 +41,7 @@ func SearchTweet(client *twitter.Client) {
 }
 
 func TweetStream() {
+
 	creds := auth.GetCreds()
 	queryParam := os.Getenv("QUERY_PARAM")
 	logr.Print("Getting tweet stream for : ", queryParam)
@@ -54,11 +62,7 @@ func TweetStream() {
 
 		tweets = append(tweets, tweetdata)
 		if len(tweets) == 10 {
-			// Call sentiment API in batches
-			logr.Print(tweets)
-			for _, tweets := range tweets {
-				logr.Print(tweets)
-			}
+			SentimentAnalysis(tweets)
 			tweets = nil
 		}
 	}
@@ -81,4 +85,43 @@ func TweetStream() {
 
 	fmt.Println("Stopping Stream...")
 	stream.Stop()
+}
+
+func SentimentAnalysis(tweetBatch []TweetData) {
+
+	textAnalyticsClient := auth.GetTextAnalyticsClient()
+	ctx := context.Background()
+	inputDocuments := returnInputDocuments(tweetBatch)
+
+	batchInput := textanalytics.MultiLanguageBatchInput{Documents: &inputDocuments}
+	result, _ := textAnalyticsClient.Sentiment(ctx, to.BoolPtr(false), &batchInput)
+	var batchResult textanalytics.SentimentBatchResult
+	jsonString, _ := json.Marshal(result)
+	_ = json.Unmarshal(jsonString, &batchResult)
+
+	// Printing sentiment results
+	for _, document := range *batchResult.Documents {
+		logr.Printf("Document ID: %s ", *document.ID)
+		logr.Printf("Sentiment Score: %f\n", *document.Score)
+	}
+
+	// Printing document errors
+	for _, err := range *batchResult.Errors {
+		logr.Printf("Document ID: %s Message : %s\n", *err.ID, *err.Message)
+	}
+}
+
+func returnInputDocuments(batch []TweetData) []textanalytics.MultiLanguageInput {
+	tweetsToProcess := []textanalytics.MultiLanguageInput{}
+	for i, v := range batch {
+		test := textanalytics.MultiLanguageInput{
+			Language: to.StringPtr("en"),
+			ID:       to.StringPtr(strconv.Itoa(i)),
+			Text:     to.StringPtr(v.Body),
+		}
+		logr.Println(i, " : ", v.Body)
+		tweetsToProcess = append(tweetsToProcess, test)
+	}
+
+	return tweetsToProcess
 }

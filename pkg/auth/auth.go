@@ -3,6 +3,8 @@ package auth
 import (
 	"os"
 
+	"github.com/Azure/azure-sdk-for-go/services/cognitiveservices/v2.1/textanalytics"
+	"github.com/Azure/go-autorest/autorest"
 	"github.com/dghubble/go-twitter/twitter"
 	"github.com/dghubble/oauth1"
 )
@@ -43,4 +45,14 @@ func GetClient(creds *Credentials) (*twitter.Client, error) {
 	// }
 
 	return client, nil
+}
+
+func GetTextAnalyticsClient() textanalytics.BaseClient {
+	key := os.Getenv("AZURE_KEY")
+	endpoint := os.Getenv("AZURE_ENDPOINT")
+
+	textAnalyticsClient := textanalytics.New(endpoint)
+	textAnalyticsClient.Authorizer = autorest.NewCognitiveServicesAuthorizer(key)
+
+	return textAnalyticsClient
 }
