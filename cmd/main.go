@@ -13,7 +13,8 @@ import (
 )
 
 func main() {
-	if os.Getenv("SEARCH_TYPE") == "SEARCH" {
+	searchType := os.Getenv("SEARCH_TYPE")
+	if searchType == "SEARCH" {
 		logr.Println("About to start tweet search")
 		var interval string = os.Getenv("INTERVAL")
 		creds := auth.GetCreds()
@@ -33,8 +34,10 @@ func main() {
 
 			time.Sleep(time.Duration(sleepInterval) * time.Second)
 		}
-	} else if os.Getenv("SEARCH_TYPE") == "STREAM" {
+	} else if searchType == "STREAM" {
 		logr.Println("About to start tweet stream")
+		processing.TweetStream()
+	} else if searchType == "SENTI" {
 		processing.TweetStream()
 	}
 }
