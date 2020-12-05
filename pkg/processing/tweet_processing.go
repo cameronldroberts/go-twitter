@@ -79,7 +79,7 @@ func TweetStream() {
 
 	go demux.HandleChan(stream.Messages)
 
-	ch := make(chan os.Signal)
+	ch := make(chan os.Signal,1)
 	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
 	log.Println(<-ch)
 
